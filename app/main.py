@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from core.config import settings
-from api.routes import router 
+from app.core.config import settings
+from app.api.routes.chatRoutes import router
 
 app = FastAPI(
     title="ChatBot Assistant Service",
