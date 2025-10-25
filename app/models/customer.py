@@ -8,7 +8,7 @@ class Customer(Base):
     id = Column(String(10), primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     address = Column(String(100), nullable=False)
-    salary = Column(Float, nullable=False)
+    balance = Column(Float, nullable=False)
 
     def __repr__(self):
-        return f"<Customer(id='{self.id}', name='{self.name}', address='{self.address}', salary={self.salary})>"
+        return f"<Customer(id='{self.id}', name='{self.name}', address='{self.address}', balance={self.balance})>"

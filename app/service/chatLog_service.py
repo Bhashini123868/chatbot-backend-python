@@ -1,39 +1,53 @@
-import sys
-
+from datetime import datetime
+from fastapi import HTTPException
+from sqlalchemy.orm import Session as DBSession
+from app.agent.agent_graph import create_graph
+from app.agent.agent_state import AgentState
+from app.models.chatLog import ChatLog
+from app.models.session import Session as SessionModel
 from langchain.chains import LLMChain
-from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
 
-from app.agent.query_service import handle_sql_queries
-from app.core.config import settings
+class ChatService:
+    def __init__(self, db: DBSession):
+        self.db = db
+        self.agent = create_graph()
 
-prompt = PromptTemplate(
-    input_variables=["message"],
-    template="You are a helpful assistant. Answer the following question: {message}"
-)
+    def validate_session(self, session_id: str):
+        if not session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        session = self.db.query(SessionModel).filter(SessionModel.session_id == session_id).first()
+        if not session:
+            raise HTTPException(status_code=401, detail="Invalid session")
+        if session.expires_at and session.expires_at < datetime.utcnow():
+            raise HTTPException(status_code=401, detail="Session expired")
 
-llm = ChatOpenAI(
-    model="gpt-3.5-turbo",
-    temperature=0.8,
-    openai_api_key= settings.OPENAI_API_KEY,
+        session.last_active = datetime.utcnow()
+        self.db.commit()
+        return session
 
-)
 
-async def generate_reply(message: str, session_id: str = None) -> str:
-    print("1",message)
-    try:
-        keyword = ["data", "records", "show", "list", "how many", "count", "sum", "average"]
+    async def process_message(self, session_id: str, message: str):
+        self.validate_session(session_id)
 
-        if any(kw in message.lower() for kw in keyword):
-            sql_response = await handle_sql_queries(message)
-            print("2",sql_response)
-            if "reply" in sql_response:
-                return sql_response["reply"]
-            else:
-                return f"Error: {sql_response['error']}"
+        user_msg = ChatLog(session_id=session_id, sender="user", content=message)
+        self.db.add(user_msg)
+        self.db.commit()
+        self.db.refresh(user_msg)
 
-        chain = LLMChain(llm=llm, prompt=prompt)
-        print("3",LLMChain)
-        return chain.run(message)
-    except:
-        return f"Error: {sys.exc_info()[0]}"
+        initial_agent_state: AgentState = {
+            "messages": [],
+            "user_query": message,
+            "reply": "",
+            "decision": ""
+        }
+
+
+        agent_state = await self.agent.ainvoke(initial_agent_state)
+        response = agent_state["reply"]
+
+        bot_msg = ChatLog(session_id=session_id, sender="bot", content=response)
+        self.db.add(bot_msg)
+        self.db.commit()
+        self.db.refresh(bot_msg)
+
+        return {"reply": response, "saved": True}
