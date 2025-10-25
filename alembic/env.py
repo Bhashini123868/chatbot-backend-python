@@ -13,6 +13,8 @@ from app.core.database import Base
 from app.models.chatLog import ChatLog
 from app.models.session import Session
 from app.models.customer import Customer
+from app.models.item import Item
+from app.models.order_detail import OrderDetail
 config = context.config
 
 config.set_main_option("sqlalchemy.url",settings.DATABASE_URL)

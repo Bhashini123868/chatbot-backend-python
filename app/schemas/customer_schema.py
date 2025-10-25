@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class CustomerBase(BaseModel):
     name = str
     address = str
-    salary = float
+    balance = float
 
 class CustomerCreate(CustomerBase):
     id: str
@@ -12,7 +12,7 @@ class CustomerCreate(CustomerBase):
 class CustomerUpdate(BaseModel):
     name: str|None = None
     address: str|None = None
-    salary: float|None = None
+    balance: float|None = None
 
 class CustomerResponce(CustomerBase):
     id: str

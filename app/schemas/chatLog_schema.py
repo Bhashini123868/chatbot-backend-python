@@ -1,24 +1,29 @@
-from datetime import datetime
-from typing import Optional
-
 from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
 
 
 class ChatRequest(BaseModel):
     message: str
-    sessionId: Optional[str] = None
+    session_id: Optional[str] = None
+    class Config:
+        from_attributes = True
 
-class ChatLogOut(BaseModel):
+class ChatMessageOut(BaseModel):
     id: int
-    user_question: str
-    bot_answer: str
-    additional_info: Optional[str]
-    timestamp: datetime
+    session_id: Optional[str]
+    sender: str
+    content: str
+    created_at: datetime
+    class Config:
+        from_attributes = True
 
-class Config:
-    orm_mode = True
 
 class ChatResponse(BaseModel):
     reply: str
     saved: bool = False
-    message: Optional[ChatLogOut] = None
+    message: Optional[ChatMessageOut] = None
+    session_id: Optional[str] = None
+
+    class Config:
+        from_attributes = True
